@@ -1,5 +1,3 @@
-
-
 var express = require('express');
 var path = require('path');
 var favicon = require('serve-favicon');
@@ -16,6 +14,19 @@ var db = mongo.db("mongodb://localhost:27017/fussball", {native_parser:true});
 
 var app = express();
 
+var es = require('eventstore')({
+  type: 'mongodb',
+  host: 'localhost',                          // optional
+  port: 27017,                                // optional
+  dbName: 'fussball',                       // optional
+  eventsCollectionName: 'events',             // optional
+  snapshotsCollectionName: 'snapshots',       // optional
+  transactionsCollectionName: 'transactions', // optional
+  timeout: 10000                              // optional
+  // username: 'technicalDbUser',                // optional
+  // password: 'secret'                          // optional
+});
+
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
@@ -31,6 +42,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Make our db accessible to our router
 app.use(function(req,res,next){
   req.db = db;
+  req.es = es; //add event store
   next();
 });
 
