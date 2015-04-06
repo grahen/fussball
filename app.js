@@ -2,17 +2,32 @@ var express = require('express');
 var path = require('path');
 var favicon = require('serve-favicon');
 var logger = require('morgan');
+
+
+var log4js = require('log4js');
+var log = log4js.getLogger();
+
+
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 
 var routes = require('./routes/index');
 var users = require('./routes/users');
 
+var games = require('./routes/games');
+
+
+
+
+
 // Database
 var mongo = require('mongoskin');
 var db = mongo.db("mongodb://localhost:27017/fussball", {native_parser:true});
 
 var app = express();
+
+var events = require('events');
+var bus = new events.EventEmitter();
 
 var es = require('eventstore')({
   type: 'mongodb',
@@ -25,6 +40,14 @@ var es = require('eventstore')({
   timeout: 10000                              // optional
   // username: 'technicalDbUser',                // optional
   // password: 'secret'                          // optional
+});
+
+es.init(function(){
+  log.debug("Ok initialized.....");
+});
+
+es.useEventPublisher(function(evt) {
+  bus.emit('event', evt);
 });
 
 // view engine setup
@@ -48,6 +71,7 @@ app.use(function(req,res,next){
 
 app.use('/', routes);
 app.use('/users', users);
+app.use('/games', games);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
