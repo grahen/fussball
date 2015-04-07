@@ -17,17 +17,14 @@ var users = require('./routes/users');
 var games = require('./routes/games');
 
 
-
-
-
 // Database
 var mongo = require('mongoskin');
 var db = mongo.db("mongodb://localhost:27017/fussball", {native_parser:true});
 
 var app = express();
 
-var events = require('events');
-var bus = new events.EventEmitter();
+var bus = require('./bus');
+
 
 var es = require('eventstore')({
   type: 'mongodb',
@@ -49,6 +46,7 @@ es.init(function(){
 es.useEventPublisher(function(evt) {
   bus.emit('event', evt);
 });
+
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
