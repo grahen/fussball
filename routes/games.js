@@ -10,7 +10,7 @@ var bus = require('../bus');
 
 var ObjectID = require('mongodb').ObjectID;
 
-var stream = 'game';
+var streamName = 'game';
 
 var m = require("monet");
 
@@ -36,13 +36,17 @@ function getGame(db, deliver) {
     });
 }
 
-
-function getCurrentGame(db, deliver) {
+/**
+ * Get hold of the current game, that is if there is one running. If not None is returned in the callback.
+ * @param db
+ * @param callback
+ */
+function getCurrentGame(db, callback) {
     getGame(db, (game) => {
         if (game.isSome() && game.some().winner === "") {
-            deliver(game);
+            callback(game);
         } else {
-            deliver(m.Maybe.None());
+            callback(m.Maybe.None());
         }
     });
 }
@@ -61,7 +65,7 @@ router.post('/adduser', (req, res) => {
 });
 
 function fireGameCreated(es, callback) {
-    es.getEventStream(stream, (err, stream) => {
+    es.getEventStream(streamName, (err, stream) => {
         stream.addEvent(
             {
                 createGame: {
@@ -70,6 +74,31 @@ function fireGameCreated(es, callback) {
             });
 
         stream.commit();
+    });
+}
+
+function createGame(db, callback) {
+    var id = new ObjectID();
+    var g = {
+        name: "theGame1", //Very static, we'll try to find another way later on.
+        gameId: id.toHexString(),
+        timeStarted: new Date().toISOString(),
+        timeEnded: "",
+        team_one: {},
+        team_two: {},
+        score: {
+            team_one: 0,
+            team_two: 0
+        },
+        winner: ""
+    };
+
+    db.collection('game').update({name: "theGame1"}, g, (err) => {
+        logger.error(err);
+
+        if (err) throw err;
+
+        callback(g);
     });
 }
 
@@ -86,46 +115,23 @@ router.post('/createGame', (req, res) => {
 
         if (game.isSome()) {
             logger.debug("Nope the previous game is still in progress...");
-            res.json({
-                gameId: game.currentId,
-                msg: "Game already started"
-            });
+            res.status(400).send('Game already started!!');
 
         } else {
-            var id = new ObjectID();
+            createGame(db, (newGame) => {
+                es.getEventStream(streamName, (err, stream) => {
+                    stream.addEvent(
+                        {
+                            gameCreated: {
+                                gameId: newGame.gameId,
+                                timeStarted: newGame.timeStarted
+                            }
+                        });
 
-            logger.debug("Create a new one on this mf: " + JSON.stringify(game));
-            var d = new Date().toISOString();
-            var g = {
-                name: "theGame1", //Very static, we'll try to find another way later on.
-                gameId: id.toHexString(),
-                timeStarted: d,
-                timeEnded: "",
-                team_one: {},
-                team_two: {},
-                score: {
-                    team_one: 0,
-                    team_two: 0
-                },
-                winner: ""
-            };
+                    stream.commit();
 
-            db.collection('game').update({name: "theGame1"}, g, (err) => {
-                logger.error(err);
-                if (err) throw err;
-            });
-
-            //We respond to the client once the event has been committed on the stream.
-            es.getEventStream(stream, (err, stream) => {
-                stream.addEvent(
-                    {
-                        gameCreated: {
-                            gameId: id.toHexString(),
-                            timeStarted: d
-                        }
-                    });
-                stream.commit();
-                res.json({game: g});
+                    res.json({game: newGame});
+                });
             });
         }
     });
@@ -160,7 +166,7 @@ router.post('/takePosition/:gameId/:team/:position/:player', (req, res) => {
                 if (err) throw err;
             });
 
-            es.getEventStream(stream, (err, stream) => {
+            es.getEventStream(streamName, (err, stream) => {
                 stream.addEvent(
                     {
                         positionTaken: {
@@ -175,7 +181,7 @@ router.post('/takePosition/:gameId/:team/:position/:player', (req, res) => {
                 res.send((err === null) ? {game: g} : {game: err});
             });
         } else {
-            res.send("No game running!");
+            res.status(400).send('No game present!');
         }
     });
 });
@@ -193,43 +199,117 @@ router.post('/score/:scoredBy', (req, res) => {
 
     var t = req.params.scoredBy;
 
-    getCurrentGame(req.db, (game) => {
-        if (game.isSome()) {
+    //Todo we really really really need to refactor this into something a lot more functional!
+    try {
+        getCurrentGame(req.db, (game) => {
+            if (game.isSome()) {
 
-            var score = {};
-            score['score.' + t] = 1;
+                var score = {};
+                score['score.' + t] = 1;
 
-            db.collection('game').update({name: "theGame1"},
-                {$inc: score}, (err) => {
-                    logger.debug("Db updated! Or not! ?: " + err);
+                updateDbScore(score, db,
+                    (updatedGame) => {
+                        postEvent(es, {
+                                scored: {
+                                    team: t
+                                }
+                            }, () => {
 
-                    if (err) throw err;
-                });
+                                if (updatedGame.score.team_one == 10) {
+                                    endGame(db, updatedGame, (endedGame) => {
+                                        res.send(endedGame)
+                                    });
 
-            es.getEventStream(stream, (err, stream) => {
-                stream.addEvent(
-                    {
-                        scored: {
-                            team: t
-                        }
-                    });
+                                } else {
+                                    res.send(updatedGame);
+                                }
+                            }
+                        );
+                    }
+                )
 
-                stream.commit();
+            } else {
+                res.status(400).send('No game present!');
+            }
+        });
 
-
-                getCurrentGame(db, (g) => {
-                    //Todo resolve winner!!!! If any team has 10 the game is over!
-
-
-                    res.send((err === null) ? {game: g} : {game: err});
-                });
-
-            });
-        } else {
-            res.send("No game running!");
-        }
-    });
+    } catch (err) {
+        res.send(err);
+    }
 });
 
+function getWinner(score) {
+    if (score.team_one > score.team_two) {
+        return 'team_one';
+    }
+    return 'team_two';
+}
+
+/**
+ * Ends the game in the database and in the callback returns the game object in the db.
+ * @param db
+ * @param gameToEnd
+ * @param callback
+ */
+function endGame(db, gameToEnd, callback) {
+
+//Todo update the correct fields in the db, just do it!
+    var g = JSON.parse(JSON.stringify(gameToEnd));
+    delete g._id;
+
+    var d = new Date().toISOString();
+    var w = getWinner(gameToEnd.score);
+
+    g.timeEnded = d;
+    g.winner = w;
+
+    db.collection('game').update({name: 'theGame1'},
+        {$set: {
+            timeEnded:d,
+            winner: w
+        }},
+        (err) => {
+            if (err) {
+                logger.error("error updating to end game: " + err);
+                throw err;
+            }
+        });
+
+
+    db.collection('gameHistory').insert(
+        g,
+        (err) => {
+            if (err) {
+                logger.error(err);
+                throw err;
+            }
+
+
+            callback(g);
+        });
+}
+
+function updateDbScore(score, db, callback) {
+    db.collection('game').update({name: "theGame1"},
+        {$inc: score},
+        (err) => {
+            if (err) {
+                logger.error(err);
+                throw err;
+            }
+
+            getCurrentGame(db, (game) => callback(game.some()));
+        });
+}
+
+function postEvent(es, evt, doneCommitting) {
+    es.getEventStream(streamName, (err, stream) => {
+        stream.addEvent(evt);
+        stream.commit();
+        if (err) throw err;
+        doneCommitting()
+
+    });
+}
 
 module.exports = router;
