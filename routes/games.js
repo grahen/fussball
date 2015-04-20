@@ -82,15 +82,15 @@ function createGame(db, callback) {
     var g = {
         name: "theGame1", //Very static, we'll try to find another way later on.
         gameId: id.toHexString(),
-        timeStarted: new Date().toISOString(),
-        timeEnded: "",
+        timeStarted: '',
+        timeEnded: '',
         team_one: {},
         team_two: {},
         score: {
             team_one: 0,
             team_two: 0
         },
-        winner: ""
+        winner: ''
     };
 
     db.collection('game').update({name: "theGame1"}, g, (err) => {
@@ -124,7 +124,7 @@ router.post('/createGame', (req, res) => {
                         {
                             gameCreated: {
                                 gameId: newGame.gameId,
-                                timeStarted: newGame.timeStarted
+                                timeCreated: new Date().toISOString()
                             }
                         });
 
@@ -143,6 +143,52 @@ function updatePosition(team, position, player, game) {
     g[team][position] = player;
     return g;
 }
+
+/**
+ *
+ * @param game
+ * @returns None if it is ok to start, Some(err: String) otherwise.
+
+ */
+function okToStart(game) {
+    if (game.isSome() && game.some().startTime != '') {
+        return m.Maybe.Some('Game already started ');
+    }
+
+
+    //Todo check the seating, it must be either a single game. I.e. at least one player on each team.
+
+}
+
+router.post('/startGame', (req, res) => {
+    var es = req.es;
+    var db = req.db;
+    try {
+        getCurrentGame(db, (game) => {
+            var startedAt = new Date();
+            var startIt = okToStart(game).isNone()
+            //Validate that we actually can start,
+            if (startIt.isNone()) {
+                db.collection('game').update({name: "theGame1"}, {$set: {timeStarted: startedAt.toISOString()}}, (err) => {
+                    if (err) throw err;
+
+                    getCurrentGame(db, (startedGame) => {
+                        postEvent(es, {
+                            gameStartedAt: startedAt.toISOString
+                        }, () => {
+                            res.send({game: startedGame.some()}); //Well well no error handling!
+                        });
+                    });
+                });
+            } else {
+                res.status(400).send({err: startIt.some()});
+            }
+        });
+    } catch (err) {
+        logger.error("Error: " + err);
+        res.status(500).send(err);
+    }
+});
 
 /*
  * POST to take position.
@@ -202,7 +248,7 @@ router.post('/score/:scoredBy', (req, res) => {
     //Todo we really really really need to refactor this into something a lot more functional!
     try {
         getCurrentGame(req.db, (game) => {
-            if (game.isSome()) {
+            if (game.isSome() && game.some().timeStarted != '') {
 
                 var score = {};
                 score['score.' + t] = 1;
@@ -229,7 +275,7 @@ router.post('/score/:scoredBy', (req, res) => {
                 )
 
             } else {
-                res.status(400).send('No game present!');
+                res.status(400).send('No started game present!');
             }
         });
 
@@ -253,7 +299,6 @@ function getWinner(score) {
  */
 function endGame(db, gameToEnd, callback) {
 
-//Todo update the correct fields in the db, just do it!
     var g = JSON.parse(JSON.stringify(gameToEnd));
     delete g._id;
 
@@ -264,10 +309,12 @@ function endGame(db, gameToEnd, callback) {
     g.winner = w;
 
     db.collection('game').update({name: 'theGame1'},
-        {$set: {
-            timeEnded:d,
-            winner: w
-        }},
+        {
+            $set: {
+                timeEnded: d,
+                winner: w
+            }
+        },
         (err) => {
             if (err) {
                 logger.error("error updating to end game: " + err);
@@ -283,7 +330,6 @@ function endGame(db, gameToEnd, callback) {
                 logger.error(err);
                 throw err;
             }
-
 
             callback(g);
         });
