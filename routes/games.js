@@ -7,6 +7,8 @@ var log4js = require('log4js');
 var logger = log4js.getLogger();
 
 var bus = require('../bus');
+var g = require('../impl/game');
+
 
 var ObjectID = require('mongodb').ObjectID;
 
@@ -20,49 +22,15 @@ function theGame(evt) {
 
 bus.on('event', theGame);
 
-/**
- *
- * @param db the db connection, i.e. mongo connection.
- * @param deliver a callback function that is called when there is a result form the database.
- * @returns {null|*}
- */
-function getGame(db, deliver) {
-    return db.collection('game').find({name: "theGame1"}).toArray((err, items) => {
-        if (items.length == 0) {
-            deliver(m.Maybe.None());
-        } else {
-            deliver(m.Maybe.Some(items[0]));
-        }
-    });
-}
 
-/**
- * Get hold of the current game, that is if there is one running. If not None is returned in the callback.
- * @param db
- * @param callback
- */
-function getCurrentGame(db, callback) {
-    getGame(db, (game) => {
-        if (game.isSome() && game.some().winner === "") {
-            callback(game);
-        } else {
-            callback(m.Maybe.None());
-        }
-    });
-}
+
+
 
 /*
  * GET current ongoing game.
  */
-router.get('/current', (req, res) => getGame(req.db, (items) => res.json(items)));
+router.get('/current', (req, res) => g.getGame(req.db, (items) => res.json(items)));
 
-/*
- * POST to adduser.
- */
-router.post('/adduser', (req, res) => {
-    var db = req.db;
-    db.collection('userlist').insert(req.body, (err, result) => res.send((err === null) ? {msg: ''} : {msg: err}));
-});
 
 function fireGameCreated(es, callback) {
     es.getEventStream(streamName, (err, stream) => {
@@ -105,15 +73,15 @@ function createGame(db, callback) {
 /*
  * POST to create the game, it is only possible to create a game if there is none running..
  */
-router.post('/createGame', (req, res) => {
+router.post('/createGame/:force', (req, res) => {
     logger.debug("Create a new game");
 
     var es = req.es;
     var db = req.db;
 
-    getCurrentGame(req.db, (game) => {
+    g.getCurrentGame(req.db, (game) => {
 
-        if (game.isSome()) {
+        if (game.isSome() && req.params.force != 'force') {
             logger.debug("Nope the previous game is still in progress...");
             res.status(400).send('Game already started!!');
 
@@ -164,7 +132,7 @@ router.post('/startGame', (req, res) => {
     var es = req.es;
     var db = req.db;
     try {
-        getCurrentGame(db, (game) => {
+        g.getCurrentGame(db, (game) => {
             var startedAt = new Date();
             var startIt = okToStart(game).isNone()
             //Validate that we actually can start,
@@ -172,7 +140,7 @@ router.post('/startGame', (req, res) => {
                 db.collection('game').update({name: "theGame1"}, {$set: {timeStarted: startedAt.toISOString()}}, (err) => {
                     if (err) throw err;
 
-                    getCurrentGame(db, (startedGame) => {
+                    g.getCurrentGame(db, (startedGame) => {
                         postEvent(es, {
                             gameStartedAt: startedAt.toISOString
                         }, () => {
@@ -197,10 +165,12 @@ router.post('/takePosition/:gameId/:team/:position/:player', (req, res) => {
     var es = req.es;
     var db = req.db;
 
-    getCurrentGame(req.db, (game) => {
+    g.getCurrentGame(req.db, (game) => {
         if (game.isSome()) {
 
             var t = req.params.team;
+
+
             var g = updatePosition(t, req.params.position, req.params.player, game.some());
 
             var new_team = {};
@@ -245,9 +215,9 @@ router.post('/score/:scoredBy', (req, res) => {
 
     var t = req.params.scoredBy;
 
-    //Todo we really really really need to refactor this into something a lot more functional!
+    //Todo Refactor callback hell..
     try {
-        getCurrentGame(req.db, (game) => {
+        g.getCurrentGame(req.db, (game) => {
             if (game.isSome() && game.some().timeStarted != '') {
 
                 var score = {};
@@ -259,17 +229,7 @@ router.post('/score/:scoredBy', (req, res) => {
                                 scored: {
                                     team: t
                                 }
-                            }, () => {
-
-                                if (updatedGame.score.team_one == 10) {
-                                    endGame(db, updatedGame, (endedGame) => {
-                                        res.send(endedGame)
-                                    });
-
-                                } else {
-                                    res.send(updatedGame);
-                                }
-                            }
+                            }, checkEndGame(updatedGame, res)
                         );
                     }
                 )
@@ -283,6 +243,25 @@ router.post('/score/:scoredBy', (req, res) => {
         res.send(err);
     }
 });
+
+/**
+ *
+ * @param updatedGame
+ * @param res
+ * @returns {Function}
+ */
+function checkEndGame(updatedGame, res) {
+    return () => {
+        if (updatedGame.score.team_one == 10) {
+            endGame(db, updatedGame, (endedGame) => {
+                res.send(endedGame)
+            });
+
+        } else {
+            res.send(updatedGame);
+        }
+    }
+}
 
 function getWinner(score) {
     if (score.team_one > score.team_two) {
@@ -344,7 +323,7 @@ function updateDbScore(score, db, callback) {
                 throw err;
             }
 
-            getCurrentGame(db, (game) => callback(game.some()));
+            g.getCurrentGame(db, (game) => callback(game.some()));
         });
 }
 

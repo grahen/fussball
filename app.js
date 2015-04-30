@@ -21,6 +21,10 @@ var games = require('./routes/games');
 var mongo = require('mongoskin');
 var db = mongo.db("mongodb://localhost:27017/fussball", {native_parser:true});
 
+//TODO setup the database the first time with correct indexes:
+//userlist.username -> unique
+
+
 var app = express();
 
 var bus = require('./bus');
