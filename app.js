@@ -21,6 +21,10 @@ var games = require('./routes/games');
 var mongo = require('mongoskin');
 var db = mongo.db("mongodb://localhost:27017/fussball", {native_parser:true});
 
+//TODO setup the database the first time with correct indexes:
+//userlist.username -> unique
+
+
 var app = express();
 
 var bus = require('./bus');
@@ -49,8 +53,12 @@ es.useEventPublisher(function(evt) {
 
 
 // view engine setup
-app.set('views', path.join(__dirname, 'views'));
+app.set('views', path.join(__dirname, 'client/views'));
 app.set('view engine', 'jade');
+
+if (app.get('env') === 'development') {
+    app.locals.pretty = true;
+}
 
 // uncomment after placing your favicon in /public
 //app.use(favicon(__dirname + '/public/favicon.ico'));
