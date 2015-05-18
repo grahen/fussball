@@ -4,6 +4,7 @@ var favicon = require('serve-favicon');
 var logger = require('morgan');
 
 
+
 var log4js = require('log4js');
 var log = log4js.getLogger();
 
@@ -16,7 +17,6 @@ var users = require('./routes/users');
 
 var games = require('./routes/games');
 
-
 // Database
 var mongo = require('mongoskin');
 var db = mongo.db("mongodb://localhost:27017/fussball", {native_parser:true});
@@ -28,7 +28,6 @@ var db = mongo.db("mongodb://localhost:27017/fussball", {native_parser:true});
 var app = express();
 
 var bus = require('./bus');
-
 
 var es = require('eventstore')({
   type: 'mongodb',
@@ -67,6 +66,8 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'client')));
+
 
 // Make our db accessible to our router
 app.use(function(req,res,next){
