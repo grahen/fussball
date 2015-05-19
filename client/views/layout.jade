@@ -1,20 +1,32 @@
 doctype html
+include mixins
+
 html(ng-app='fussball-app')
     head
         title= title
+        link(rel="stylesheet", href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css")
         link(rel='stylesheet', href='/stylesheets/style.css')
+        link(rel='stylesheet', href='/bower_components/bootstrap-material-design/dist/css/material.min.css')
+        link(rel='stylesheet', href='/bower_components/bootstrap-material-design/dist/css/material-fullpalette.min.css')
+        link(rel='stylesheet', href='/bower_components/bootstrap-material-design/dist/css/ripples.min.css')
+        link(rel='stylesheet', href='/bower_components/bootstrap-material-design/dist/css/roboto.min.css')
         script(src='/bower_components/angular/angular.js')
         script(src='/bower_components/angular-route/angular-route.js')
-        //script(src='javascripts/next-update-stats.js')
-        script(src='http://ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js')
-        script(src='/javascripts/global.js')
 
     body
-        div stuff3
+        .container
 
-        ng-view
+        +nav("Fussball", "dropdown_menu")
+                +nav_item( "#/games-list", "active" ) Games
+                +nav_item( "#/users" ) Users
 
-        script(src='controllers/games.js')
+            ng-view
+
+        script(src='controllers/fussball-ctrls.js')
         script(src='services/games_service.js')
 
-        block content
+        script(src='//code.jquery.com/jquery-2.1.4.min.js' )
+        script(src='//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js' )
+        script(src='/bower_components/bootstrap-material-design/dist/js/material.min.js')
+        script(src='/bower_components/bootstrap-material-design/dist/js/ripples.min.js')
+        script(src='/javascripts/global.js')

@@ -11,4 +11,9 @@ router.get('/views/games-list.html', (req, res, next) => {
     res.render('games-list', { title: 'Express' });
 });
 
+
+router.get('/views/users-list.html', (req, res, next) => {
+    res.render('users-list', { title: 'Express' });
+});
+
 module.exports = router;

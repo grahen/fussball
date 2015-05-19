@@ -1,0 +1,25 @@
+//Just the form to add a new user
+div(class="form-group")
+    input(type="text", id="new_username", ng-model="username", placeholder="Username")
+    input(type="text", id="new_name", ng-model="name", placeholder="Name")
+    input(type="text", id="new_email", ng-model="email", placeholder="E-mail")
+    button(class="btn btn-fab btn-fab-mini btn-raised mdi-content-add", ng-click="addUser(username, name, email)")
+
+h1 These are the users
+
+div(ng-model='users', class="row")
+    table(class="table table-striped")
+        thead
+            tr
+                th Name
+                th Username
+                th Email
+                th
+        tbody
+            tr(ng-repeat="user in users")
+                td {{user.username}}
+                td {{user.username}}
+                td {{user.email}}
+                td X
+
+

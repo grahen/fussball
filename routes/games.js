@@ -9,7 +9,6 @@ var logger = log4js.getLogger();
 var bus = require('../bus');
 var g = require('../impl/game');
 
-
 var ObjectID = require('mongodb').ObjectID;
 
 var streamName = 'game';
@@ -22,15 +21,17 @@ function theGame(evt) {
 
 bus.on('event', theGame);
 
-
-
-
-
 /*
  * GET current ongoing game.
  */
-router.get('/current', (req, res) => g.getGame(req.db, (items) => res.json(items)));
+router.get('/current', (req, res) => g.getGame(req.db, (items) => {
+    if (items.some()) {
+        res.json(items.some());
+    } else {
+        res.json({})
+    }
 
+}));
 
 function fireGameCreated(es, callback) {
     es.getEventStream(streamName, (err, stream) => {
@@ -61,7 +62,7 @@ function createGame(db, callback) {
         winner: ''
     };
 
-    db.collection('game').update({name: "theGame1"}, g, (err) => {
+    db.collection('game').update({name: "theGame1"}, g,{upsert:true}, (err) => {
         logger.error(err);
 
         if (err) throw err;

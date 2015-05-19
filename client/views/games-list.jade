@@ -1,6 +1,5 @@
-h2 stuff2
-    h1 Damn it {{4 + 4}}
+h1 Current game
 
-    ul(ng-repeat='game in gamesList')
-        li {{ game.name }}
+div(ng-model='currentGame')
+    p {{ currentGame }}
 
