@@ -21,7 +21,7 @@ angular.module('fussball-app', [
 // DOM Ready =============================================================
 $(document).ready(function () {
 
-    $.material.init()
+    //$.material.init()
 
     $(".nav a").on("click", function(){
         $(".nav").find(".active").removeClass("active");

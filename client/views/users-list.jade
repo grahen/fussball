@@ -3,9 +3,9 @@ div(class="form-group")
     input(type="text", id="new_username", ng-model="username", placeholder="Username")
     input(type="text", id="new_name", ng-model="name", placeholder="Name")
     input(type="text", id="new_email", ng-model="email", placeholder="E-mail")
-    button(class="btn btn-fab btn-fab-mini btn-raised mdi-content-add", ng-click="addUser(username, name, email)")
+    button(class="btn btn-xs", ng-click="addUser(username, name, email)") Add
 
-h1 These are the users
+//h1 These are the users
 
 div(ng-model='users', class="row")
     table(class="table table-striped")
