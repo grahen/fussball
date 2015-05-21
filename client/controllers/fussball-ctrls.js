@@ -1,56 +1,12 @@
 'use strict';
 
-angular.module('fussball-app.games', [])
-    .controller('FussballCtrl', function ($scope, $routeParams, Games, $http) {
-        $scope.currentGame = "nohting yet";
-
-        $http.get('/games/current').success(function (data, status, headers, config) {
-            console.log(data);
-            console.log(status);
-            $scope.currentGame = data;
-
-        }).error(function (data, status, headers, config) {
-            console.log("error " + status);
-
-        })
-
-        //$scope.addList = function (name) {
-        //    Games.addList(name);
-        //
-        //    $scope.lists = Games.getGames;
-        //
-        //};
-
-//        $scope.openList = function (idx) {
-//            //   alert(JSON.stringify(Lists.openList(idx).items));
-//            $scope.selectedList = Lists.openList(idx)
-//        };
-//
-//
-//        $scope.getList = function () {
-//            //   alert(JSON.stringify(Lists.openList(idx).items));
-//            return Lists.openList($routeParams.listid)
-//        };
-//
-//        $scope.addItemToList = function (itemValue) {
-//            //   alert(JSON.stringify(Lists.openList(idx).items));
-//
-//            Lists.addItemToList($routeParams.listid, itemValue);
-//            $scope.lists = Lists.getLists();
-//
-////list.items.push(itemValue);
-//        };
-//
-//        $scope.remove = function (item) {
-//            //alert(item);
-//
-//            Lists.remove($routeParams.listid, item);
-//
-//          //  Lists.addItemToList($routeParams.listid, itemValue);
-//            //list.items.push(itemValue);
-//        };
-
-    })
+angular.module('fussball-app.controllers',[])
+    .controller('FussballCtrl', ['$scope', 'Game',
+        function ($scope, Game) {
+             Game.query({id: "current"}, function(current) {
+                 $scope.currentGame = current;
+            });
+        }])
     .controller('UserCtrl', function ($scope, $routeParams, $http) {
         $scope.users = {};
 
@@ -63,10 +19,18 @@ angular.module('fussball-app.games', [])
             console.log("error " + status);
         });
 
-        $scope.addUser = function(username, name, email) {
+        $scope.addUser = function (username, name, email) {
             console.log(username + "---" + name + "--" + email);
             $scope.name = "";
             $scope.username = "";
             $scope.email = "";
         }
-    });
+    }).controller('StuffCtrl', ['$scope', 'Game',
+        function ($scope, Game) {
+            $scope.takePosition = function(position) {
+                console.log("Take pos with: " + position);
+
+                Game.takePosition({id:"theGame1"}, JSON.parse(position));
+            };
+
+        }]);

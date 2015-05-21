@@ -1,5 +1,34 @@
-h1 Current game
+div(class="row")
+    div(class="col-md-3 col-md-offset-2")
+        h1(class="text-center") Current game
 
-div(ng-model='currentGame')
-    p {{ currentGame }}
+div(ng-model='currentGame' class="row")
+
+    div(class ='well col-md-2' )
+        div
+            p(class="text-center")
+                strong Silver
+
+        div
+            span(class="text-primary") Offense:&nbsp;
+            span {{ currentGame.team_one.offense }}
+        div
+            span(class="text-primary") Defense:&nbsp;
+            span {{ currentGame.team_one.defense }}
+
+    div(class = 'col-md-1 col-md-offset-1')
+        button(class="btn") start
+
+
+    div(class ='well col-md-2 col-md-offset-1' )
+        div
+            p(class="text-center")
+                strong Black
+        div
+            span(class="text-primary") Offense:&nbsp;
+            span {{ currentGame.team_two.offense }}
+        div
+            span(class="text-primary") Defense:&nbsp;
+            span {{ currentGame.team_two.defense }}
+
 

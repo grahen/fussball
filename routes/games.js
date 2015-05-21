@@ -143,7 +143,7 @@ router.post('/startGame', (req, res) => {
 
                     g.getCurrentGame(db, (startedGame) => {
                         postEvent(es, {
-                            gameStartedAt: startedAt.toISOString
+                            started: startedGame.some()
                         }, () => {
                             res.send({game: startedGame.some()}); //Well well no error handling!
                         });
@@ -162,17 +162,26 @@ router.post('/startGame', (req, res) => {
 /*
  * POST to take position.
  */
-router.post('/takePosition/:gameId/:team/:position/:player', (req, res) => {
+router.post('/:gameId/', (req, res) => {
+
+
+    if (req.query.takePosition) {
+        takePos(req, res, req.params.gameId);
+    } else {
+        res.send({err:"nope"});
+    }
+});
+
+
+function takePos(req, res, gameId) {
     var es = req.es;
     var db = req.db;
 
     g.getCurrentGame(req.db, (game) => {
         if (game.isSome()) {
 
-            var t = req.params.team;
-
-
-            var g = updatePosition(t, req.params.position, req.params.player, game.some());
+            var t = req.body.team;
+            var g = updatePosition(t, req.body.position, req.body.player, game.some());
 
             var new_team = {};
             new_team[t] = g[t];
@@ -201,7 +210,8 @@ router.post('/takePosition/:gameId/:team/:position/:player', (req, res) => {
             res.status(400).send('No game present!');
         }
     });
-});
+
+}
 
 /*
  * POST to score on the current game if no game is running this event is ignored.

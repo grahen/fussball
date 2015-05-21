@@ -1,0 +1,12 @@
+h1 Stuff
+
+div(ng-show='error' class='alert')
+    p {{ "error" }}
+
+div(class="row")
+    div(class="form-group col-md-5")
+        small {"team":"team_one|team_two", "position":"offense|defense", "player":"username"}
+        div(class="input-group")
+            input(type="text", class="form-control", ng-model="pos", placeholder="PosJson")
+            span(class="input-group-btn")
+                button(class="btn btn-primary", ng-click="takePosition(pos)") Take Position

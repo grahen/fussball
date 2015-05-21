@@ -3,17 +3,18 @@ var router = express.Router();
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
-  res.render('index2', { title: 'Express' });
+  res.render('layout');
 });
 
 
-router.get('/views/games-list.html', (req, res, next) => {
-    res.render('games-list', { title: 'Express' });
+router.get('/views/:view', (req, res, next) => {
+    console.log(req.params.view);
+    res.render(req.params.view);
 });
 
 
 router.get('/views/users-list.html', (req, res, next) => {
-    res.render('users-list', { title: 'Express' });
+    res.render('users-list');
 });
 
 module.exports = router;

@@ -3,15 +3,20 @@ var userListData = [];
 
 angular.module('fussball-app', [
     'ngRoute',
-    'fussball-app.games'
+    'ngResource',
+    'fussball-app.controllers',
+    'fussball-app.services'
 ]).
     config(['$routeProvider', function($routeProvider) {
         $routeProvider.when('/games-list/:gameid?', {
-            templateUrl: 'views/games-list.html',
+            templateUrl: 'views/games-list',
             controller: 'FussballCtrl'
         }).when('/users/:userId?', {
-            templateUrl: 'views/users-list.html',
+            templateUrl: 'views/users-list',
             controller: 'UserCtrl'
+        }).when('/stuff/', {
+            templateUrl: 'views/stuff',
+            controller: 'StuffCtrl'
         });
 
         $routeProvider.otherwise({redirectTo: '/games-list'});
