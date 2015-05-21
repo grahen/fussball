@@ -1,12 +1,43 @@
-h1 Stuff
+div(ng-show='err' class='alert alert-danger') {{ err }}
 
-div(ng-show='error' class='alert')
-    p {{ "error" }}
+div(ng-show='stuffData' class='alert alert-success') {{ stuffData }}
+
+
+//Start a new game
+div(class="row")
+    fieldset
+        legend Start new game
+        div(class="form-group col-md-5")
+            .checkbox
+                label
+                    input(type='checkbox', name='checkbox', value='test' ng-model="force")
+                    |   Force
+                button(class="btn btn-primary btn-sm", ng-click="createGame(force)") Create New Game
+br
 
 div(class="row")
-    div(class="form-group col-md-5")
-        small {"team":"team_one|team_two", "position":"offense|defense", "player":"username"}
-        div(class="input-group")
-            input(type="text", class="form-control", ng-model="pos", placeholder="PosJson")
-            span(class="input-group-btn")
-                button(class="btn btn-primary", ng-click="takePosition(pos)") Take Position
+    fieldset
+        legend Take position
+        div(class="row")
+            div(class="form-group col-md-6")
+                label(class="radio-inline")
+                    input(type="radio" ng-model="team" value="team_one")
+                    | Team One
+                label(class="radio-inline")
+                    input(type="radio" ng-model="team" value="team_two")
+                    | Team Two
+
+        div(class="row")
+            div(class="form-group col-md-6")
+                label(class="radio-inline")
+                    input(type="radio" ng-model="position" value="offense")
+                    | Offense
+                label(class="radio-inline")
+                    input(type="radio" ng-model="position" value="defense")
+                    | Defense
+
+        div(class="row")
+            div(class="form-group col-md-6")
+                select(ng-options="user.username for user in users" ng-model="player")
+
+        button(class="btn btn-primary btn-sm", ng-click="takePosition2(team, position, player)") Take position

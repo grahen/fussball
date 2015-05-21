@@ -7,30 +7,72 @@ angular.module('fussball-app.controllers',[])
                  $scope.currentGame = current;
             });
         }])
-    .controller('UserCtrl', function ($scope, $routeParams, $http) {
-        $scope.users = {};
+    .controller('UserCtrl', function ($scope, Stuff, Users) {
+        $scope.users = Users.query();
 
-        $http.get('/users/userlist').success(function (data, status, headers, config) {
-            console.log(data);
-            console.log(status);
-            $scope.users = data;
+        $scope.addUser = function (username, name, email)  {
+            console.log("New user! username: " + username + " name: " + name + " email: " + email);
 
-        }).error(function (data, status, headers, config) {
-            console.log("error " + status);
-        });
+            //TODO Yes we could have a resource construction here!!!!!!
+            var user = {};
+            user.name  = name;
+            user.username = username;
+            user.email = email;
 
-        $scope.addUser = function (username, name, email) {
-            console.log(username + "---" + name + "--" + email);
-            $scope.name = "";
-            $scope.username = "";
-            $scope.email = "";
-        }
-    }).controller('StuffCtrl', ['$scope', 'Game',
-        function ($scope, Game) {
-            $scope.takePosition = function(position) {
+            Stuff.addUser(user).then(function(){
+                $scope.users = Users.query();
+            });
+
+        };
+    }).controller('StuffCtrl', ['$scope', 'Game', 'Stuff', 'Users',
+        function ($scope, Game, Stuff, Users) {
+
+            $scope.users = Users.query();
+
+            $scope.takePosition = function(position, id) {
                 console.log("Take pos with: " + position);
 
-                Game.takePosition({id:"theGame1"}, JSON.parse(position));
+                Stuff.takePosition(id, JSON.parse(position)).then(handleResponse);
             };
 
+            $scope.takePosition2 = function(team, position, player, id) {
+               var json = {};
+                json['team'] = team;
+                json['position'] = position;
+                json['player'] = player.username;
+
+                console.log("Take pos with: " + json);
+
+                Stuff.takePosition(id, json).then(handleResponse);
+            };
+
+            $scope.createGame = function (force) {
+                console.log("Create new game: " + force);
+                clear();
+                Stuff.createGame(force).then(handleResponse);
+            };
+
+            $scope.startGame = function(id) {
+                clear();
+                Stuff.startGame(id).then(handleResponse);
+            };
+
+            function handleResponse(data) {
+                console.log("handling data")
+                if (data.status != 200) {
+                    handleError(data);
+                } else {
+                    $scope.stuffData = data.data;
+                }
+            }
+
+            function handleError(err) {
+                $scope.err = err.data;
+            }
+
+            function clear() {
+                $scope.currentGame = "";
+                $scope.err = null;
+            }
         }]);
+

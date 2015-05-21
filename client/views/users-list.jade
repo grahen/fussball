@@ -11,14 +11,14 @@ div(ng-model='users', class="row")
     table(class="table table-striped")
         thead
             tr
-                th Name
                 th Username
+                th Name
                 th Email
                 th
         tbody
             tr(ng-repeat="user in users")
                 td {{user.username}}
-                td {{user.username}}
+                td {{user.name}}
                 td {{user.email}}
                 td X
 

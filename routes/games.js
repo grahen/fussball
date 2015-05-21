@@ -74,7 +74,7 @@ function createGame(db, callback) {
 /*
  * POST to create the game, it is only possible to create a game if there is none running..
  */
-router.post('/createGame/:force', (req, res) => {
+router.post('/createGame', (req, res) => {
     logger.debug("Create a new game");
 
     var es = req.es;
@@ -82,7 +82,7 @@ router.post('/createGame/:force', (req, res) => {
 
     g.getCurrentGame(req.db, (game) => {
 
-        if (game.isSome() && req.params.force != 'force') {
+        if (game.isSome() && req.query.force != 'true') {
             logger.debug("Nope the previous game is still in progress...");
             res.status(400).send('Game already started!!');
 
@@ -159,17 +159,18 @@ router.post('/startGame', (req, res) => {
     }
 });
 
+
+
 /*
  * POST to take position.
  */
-router.post('/:gameId/', (req, res) => {
-
-
-    if (req.query.takePosition) {
-        takePos(req, res, req.params.gameId);
-    } else {
-        res.send({err:"nope"});
-    }
+router.post('/:gameId/takePosition', (req, res) => {
+    takePos(req, res, req.params.gameId);
+    //if (req.query.takePosition) {
+    //
+    //} else {
+    //    res.send({err:"nope"});
+    //}
 });
 
 
