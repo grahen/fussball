@@ -2,11 +2,10 @@ div(ng-show='err' class='alert alert-danger') {{ err }}
 
 div(ng-show='stuffData' class='alert alert-success') {{ stuffData }}
 
-
-//Start a new game
+//Create a new game
 div(class="row")
     fieldset
-        legend Start new game
+        legend Create new game
         div(class="form-group col-md-5")
             .checkbox
                 label
@@ -41,3 +40,31 @@ div(class="row")
                 select(ng-options="user.username for user in users" ng-model="player")
 
         button(class="btn btn-primary btn-sm", ng-click="takePosition2(team, position, player)") Take position
+
+br
+//Start a new game
+div(class="row")
+    fieldset
+        legend Start current game
+        div(class="form-group col-md-5")
+            button(class="btn btn-primary btn-sm", ng-click="startGame()") Start game
+br
+
+//Start a new game
+div(class="row")
+    fieldset
+        legend Score and adjustment thereof
+        div(class="row")
+            div(class="form-group col-md-6")
+                label(class="radio-inline")
+                    input(type="radio" ng-model="scoreteam" value="team_one")
+                    | Silver
+                label(class="radio-inline")
+                    input(type="radio" ng-model="scoreteam" value="team_two")
+                    | Black
+
+        div(class="form-group col-md-5")
+            button(class="btn btn-primary btn-sm", ng-click="score(scoreteam, 1)") Score +1
+            button(class="btn btn-primary btn-sm", ng-click="score(scoreteam, -1)") Score -1
+
+br
