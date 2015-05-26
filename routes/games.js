@@ -53,8 +53,14 @@ function createGame(db, callback) {
         gameId: id.toHexString(),
         timeStarted: '',
         timeEnded: '',
-        team_one: {},
-        team_two: {},
+        team_one: {
+            offense: "",
+            defense: ""
+        },
+        team_two: {
+            offense: "",
+            defense: ""
+        },
         score: {
             team_one: 0,
             team_two: 0
@@ -62,7 +68,7 @@ function createGame(db, callback) {
         winner: ''
     };
 
-    db.collection('game').update({name: "theGame1"}, g,{upsert:true}, (err) => {
+    db.collection('game').update({name: "theGame1"}, g, {upsert: true}, (err) => {
         logger.error(err);
 
         if (err) throw err;
@@ -113,29 +119,41 @@ function updatePosition(team, position, player, game) {
     return g;
 }
 
+function isTeamsOk(t1, t2) {
+  return t1.offense != t2.offense && t1.offense != t2.defense && t1.defense != t2.offense && t1.defense != t2.defense
+      && t1.offense != "" && t1.defense != "" && t2.offense != "" && t2.defense != "";
+}
+
 /**
  *
- * @param game
+ * @param maybeGame
  * @returns None if it is ok to start, Some(err: String) otherwise.
 
  */
-function okToStart(game) {
-    if (game.isSome() && game.some().startTime != '') {
-        return m.Maybe.Some('Game already started ');
+function okToStart(maybeGame) {
+
+    var ret = m.Maybe.None();
+    if (maybeGame.isSome()) {
+        var game = maybeGame.some();
+        if ((game.timeStarted != "") ) {
+            ret =  m.Maybe.Some('Game already started ');
+        } else if (!isTeamsOk(game.team_one, game.team_two)) {
+            ret =  m.Maybe.Some('A player cannot be on both teams, and there must be at least one player on each team');
+        }
     }
 
-
-    //Todo check the seating, it must be either a single game. I.e. at least one player on each team.
+    return ret;
 
 }
 
-router.post('/startGame', (req, res) => {
+router.post('/startGame/:id', (req, res) => {
     var es = req.es;
     var db = req.db;
+
     try {
         g.getCurrentGame(db, (game) => {
             var startedAt = new Date();
-            var startIt = okToStart(game).isNone()
+            var startIt = okToStart(game);
             //Validate that we actually can start,
             if (startIt.isNone()) {
                 db.collection('game').update({name: "theGame1"}, {$set: {timeStarted: startedAt.toISOString()}}, (err) => {
@@ -160,7 +178,6 @@ router.post('/startGame', (req, res) => {
 });
 
 
-
 /*
  * POST to take position.
  */
@@ -177,6 +194,7 @@ router.post('/:gameId/takePosition', (req, res) => {
 function takePos(req, res, gameId) {
     var es = req.es;
     var db = req.db;
+
 
     g.getCurrentGame(req.db, (game) => {
         if (game.isSome()) {
@@ -205,7 +223,7 @@ function takePos(req, res, gameId) {
                     });
 
                 stream.commit();
-                res.send((err === null) ? {game: g} : {game: err});
+                res.send((err === null) ? g : err);
             });
         } else {
             res.status(400).send('No game present!');
@@ -221,33 +239,45 @@ function takePos(req, res, gameId) {
  *
  * The first team to 10 wins.
  */
-router.post('/score/:scoredBy', (req, res) => {
+function createScoreEvent(team, count, type) {
+    if (type == 'C') {
+        return {corrected: {team: team, count: count}}
+    } else {
+        return {scored: {team: team}}
+    }
+}
+
+router.post('/score/:scoreType/:targetTeam', (req, res) => {
     var es = req.es;
     var db = req.db;
 
-    var t = req.params.scoredBy;
+    var team = req.params.targetTeam;
+    var type = req.params.scoreType;
+    var count = req.body.count;
+
+    logger.debug("Score for " + team + " c: " + count + " type: " + type);
+
+    var evt = createScoreEvent(team, count, type);
 
     //Todo Refactor callback hell..
     try {
         g.getCurrentGame(req.db, (game) => {
+            game.orElse();
             if (game.isSome() && game.some().timeStarted != '') {
 
-                var score = {};
-                score['score.' + t] = 1;
+                //Todo check values.
 
-                updateDbScore(score, db,
-                    (updatedGame) => {
-                        postEvent(es, {
-                                scored: {
-                                    team: t
-                                }
-                            }, checkEndGame(updatedGame, res)
-                        );
-                    }
-                )
+
+
+                var score = {};
+                score['score.' + team] = count; //Inc is done in db call, if this one is negative it's decreased in db.
+
+                updateDbScore(score, db, (updatedGame) => {
+                    postEvent(es, evt, () => res.send(updatedGame));
+                })
 
             } else {
-                res.status(400).send('No started game present!');
+                res.status(400).send({err: 'No started game present, or game score cannot be lower than 0'});
             }
         });
 
@@ -264,14 +294,14 @@ router.post('/score/:scoredBy', (req, res) => {
  */
 function checkEndGame(updatedGame, res) {
     return () => {
-        if (updatedGame.score.team_one == 10) {
-            endGame(db, updatedGame, (endedGame) => {
-                res.send(endedGame)
-            });
-
-        } else {
-            res.send(updatedGame);
-        }
+        //if (updatedGame.score.team_one == 10) {
+        //    endGame(db, updatedGame, (endedGame) => {
+        //        res.send(endedGame)
+        //    });
+        //
+        //} else {
+        res.send(updatedGame);
+        //}
     }
 }
 

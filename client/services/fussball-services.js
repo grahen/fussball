@@ -9,6 +9,14 @@ angular.module('fussball-app.services', ['ngResource'])
                 'createGame': {method: 'POST', params: {force: '@force'}}
             });
         }])
+    .factory('Score', ['$resource',
+        function ($resource) {
+            return $resource('games/score/:scoreType/:targetTeam', null, {
+                //query: {method: 'GET', params: {}, isArray: false},
+                //'takePosition': {method: 'POST', params: {takePosition: true}},
+                'score': {method: 'POST', params: {targetTeam: '@targetTeam', scoreType:'@scoreType'}}
+            });
+        }])
 
     .factory('Users', ['$resource',
         function ($resource) {
@@ -20,7 +28,6 @@ angular.module('fussball-app.services', ['ngResource'])
 
         return ({
             createGame: createGame,
-            score: score,
             correction: correction,
             startGame: startGame,
             takePosition: takePosition,
@@ -29,49 +36,36 @@ angular.module('fussball-app.services', ['ngResource'])
 
         function addUser(data) {
             return $http.post('users/adduser', data).then(handlers());
-
-
         }
-
 
         function createGame(force) {
             // $http returns a promise, which has a then function, which also returns a promise
             // Return the promise to the controller
-            return $http.post('games/createGame', {}, {params: {force: force}}).then(function (response) {
-                console.log(response);
-                return response;
-            }, function (error) {
-                console.log(error);
-                return error;
-            });
-
+            return $http.post('games/createGame', {}, {params: {force: force}}).then(ok, err);
         }
 
         //Well there is currently only a way to start the current game, not bound to id at the moment.
         function startGame(id) {
-            return $http.post('games/startGame').then(handlers());
+            return $http.post('games/startGame/'+ id).then(ok, err);
         }
 
         function takePosition(id, data) {
-            return $http.post('games/' + id + '/takePosition', data).then(handlers());
+            return $http.post('games/' + id + '/takePosition', data).then(ok, err);
         }
 
-        function handlers() {
-            return [function (response) {
-                console.log(response);
-                return response.data;
-            }, function (error) {
-                console.log(error);
-                return error;
-            }]
+        function ok(response) {
+            console.log("it was a response: " );
+            console.log(response);
+            return response;
         }
 
-        function score(team) {
-            console.log("Team " + team + " scored");
+        function err(error) {
+            console.log("it was an error: ");
+            console.log(error);
+            return error;
         }
 
         function correction(team, number) {
             console.log("Correction on team " + team + " number of goals: " + number);
         }
-
     });

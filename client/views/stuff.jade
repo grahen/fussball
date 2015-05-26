@@ -1,17 +1,20 @@
 div(ng-show='err' class='alert alert-danger') {{ err }}
 
 div(ng-show='stuffData' class='alert alert-success') {{ stuffData }}
-
+br
 //Create a new game
 div(class="row")
     fieldset
-        legend Create new game
+        legend Basic game controls
         div(class="form-group col-md-5")
             .checkbox
                 label
                     input(type='checkbox', name='checkbox', value='test' ng-model="force")
                     |   Force
                 button(class="btn btn-primary btn-sm", ng-click="createGame(force)") Create New Game
+            button(class="btn btn-primary btn-sm", ng-click="startGame('theGame1')") Start game
+            button(class="btn btn-primary btn-sm", ng-click="getCurrentGame()") Get game
+
 br
 
 div(class="row")
@@ -42,15 +45,8 @@ div(class="row")
         button(class="btn btn-primary btn-sm", ng-click="takePosition2(team, position, player)") Take position
 
 br
-//Start a new game
-div(class="row")
-    fieldset
-        legend Start current game
-        div(class="form-group col-md-5")
-            button(class="btn btn-primary btn-sm", ng-click="startGame()") Start game
-br
 
-//Start a new game
+//Fix with score a new game
 div(class="row")
     fieldset
         legend Score and adjustment thereof
@@ -64,7 +60,8 @@ div(class="row")
                     | Black
 
         div(class="form-group col-md-5")
-            button(class="btn btn-primary btn-sm", ng-click="score(scoreteam, 1)") Score +1
-            button(class="btn btn-primary btn-sm", ng-click="score(scoreteam, -1)") Score -1
+            button(class="btn btn-primary btn-sm", ng-click="correction(scoreteam, 1)") Correction +1
+            button(class="btn btn-primary btn-sm", ng-click="correction(scoreteam, -1)") Correction -1
+            button(class="btn btn-primary btn-sm", ng-click="score(scoreteam, 1)") Score 1
 
 br
