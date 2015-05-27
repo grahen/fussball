@@ -1,11 +1,20 @@
 'use strict';
 
 angular.module('fussball-app.controllers',[])
-    .controller('FussballCtrl', ['$scope', 'Game',
-        function ($scope, Game) {
-             Game.query({id: "current"}, function(current) {
-                 $scope.currentGame = current;
+    .controller('FussballCtrl', ['$scope', 'Game', 'Users',
+        function ($scope, Game, Users) {
+            $scope.users = Users.query({}, function(data){
+                $scope.team_two_offense = "grahen";
             });
+
+
+            Game.query({id: "current"}, function(current) {
+                 $scope.currentGame = current;
+                 $scope.team_two_offense = current.team_two.offense;
+                console.log(current.team_two.offense);
+
+            });
+
         }])
     .controller('UserCtrl', function ($scope, Stuff, Users) {
         $scope.users = Users.query();

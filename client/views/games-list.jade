@@ -1,32 +1,54 @@
-div(class="row")
-    div(class="col-md-3 col-md-offset-2")
-        h1(class="text-center") Current game
 
-div(ng-model='currentGame' class="row")
+div(ng-model='currentGame' class="row row-centered")
+    //div(class="row")
+    //    div(class="col-md-12 ")
+    //        h1(class="text-center") Current game
 
-    div(class ='well col-md-2' )
-        div
-            p(class="text-center")
-                strong Silver
-        div
-            span(class="text-primary") Offense:&nbsp;
-            span {{ currentGame.team_one.offense }}
-        div
-            span(class="text-primary") Defense:&nbsp;
-            span {{ currentGame.team_one.defense }}
+    div(class="row" ng-show="currentGame.timeStarted == ''")
+        div(class="col-md-3")
+        div(class="form-group col-md-2 ")
+            select(class="form-control" ng-options="user.username for user in users track by user.username" ng-model="currentGame.team_one.offense")
+        div(class="col-md-2")
+        div(class="form-group col-md-2")
+            select(class="form-control" ng-options="user.username for user in users track by user.username" ng-model="team_one_defense")
+        div(class="col-md-3")
 
-    div(class ='col-md-2 col-md-offset-1' )
-        span {{ currentGame.score.team_one }}
-        button(class="btn") start
-        span {{ currentGame.score.team_two }}
+    div(class="row" ng-show="currentGame.timeStarted != ''")
+        div(class="col-md-3")
+        div(class="form-group col-md-2 ")
+             h2 {{currentGame.team_one.offense}}
+        div(class="col-md-2")
+        div(class="form-group col-md-2")
+            h2 {{currentGame.team_one.defense}}
+        div(class="col-md-3")
 
-    div(class ='well col-md-2 col-md-offset-1' )
-        div
-            p(class="text-center")
-                strong Black
-        div
-            span(class="text-primary") Offense:&nbsp;
-            span {{ currentGame.team_two.offense }}
-        div
-            span(class="text-primary") Defense:&nbsp;
-            span {{ currentGame.team_two.defense }}
+
+    div(class="row" )
+        div(class="col-md-3")
+        div(class="col-md-1")
+            h1 {{currentGame.score.team_two}}
+        div(class="col-md-4")
+            img(src="/images/fussball-1.jpg" height="240" width="320")
+        div(class="col-md-1")
+            h1 {{currentGame.score.team_one}}
+        div(class="col-md-3")
+
+
+
+    div(class="row" ng-show="currentGame.timeStarted == ''")
+        div(class="col-md-3")
+        div(class="form-group col-md-2 ")
+            select(class="form-control" ng-options="user.username for user in users track by user.username" ng-model="team_two_defense" )
+        div(class="col-md-2")
+        div(class="form-group col-md-2")
+            select(class="form-control" ng-options="user.username for user in users track by user.username" ng-model="team_two_offense")
+        div(class="col-md-3")
+
+    div(class="row" ng-show="currentGame.timeStarted != ''")
+        div(class="col-md-3")
+        div(class="form-group col-md-2 ")
+            h2 {{currentGame.team_two.defense}}
+        div(class="col-md-2")
+        div(class="form-group col-md-2")
+            h2 {{currentGame.team_two.offense}}
+        div(class="col-md-3")
