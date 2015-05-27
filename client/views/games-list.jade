@@ -8,7 +8,6 @@ div(ng-model='currentGame' class="row")
         div
             p(class="text-center")
                 strong Silver
-
         div
             span(class="text-primary") Offense:&nbsp;
             span {{ currentGame.team_one.offense }}
@@ -16,9 +15,10 @@ div(ng-model='currentGame' class="row")
             span(class="text-primary") Defense:&nbsp;
             span {{ currentGame.team_one.defense }}
 
-    div(class = 'col-md-1 col-md-offset-1')
+    div(class ='col-md-2 col-md-offset-1' )
+        span {{ currentGame.score.team_one }}
         button(class="btn") start
-
+        span {{ currentGame.score.team_two }}
 
     div(class ='well col-md-2 col-md-offset-1' )
         div
@@ -30,5 +30,3 @@ div(ng-model='currentGame' class="row")
         div
             span(class="text-primary") Defense:&nbsp;
             span {{ currentGame.team_two.defense }}
-
-

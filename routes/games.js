@@ -247,6 +247,18 @@ function createScoreEvent(team, count, type) {
     }
 }
 
+function validateScore(game, team, count) {
+    if (game.timeStarted == '') {
+        return m.Validation.fail({err:"No started game present"});
+    }
+
+    if ((game.score[team] + count) < 0) {
+        return m.Validation.fail({err:"Score cannot be negative"});
+    }
+
+    return m.Validation.success();
+}
+
 router.post('/score/:scoreType/:targetTeam', (req, res) => {
     var es = req.es;
     var db = req.db;
@@ -257,28 +269,21 @@ router.post('/score/:scoreType/:targetTeam', (req, res) => {
 
     logger.debug("Score for " + team + " c: " + count + " type: " + type);
 
-    var evt = createScoreEvent(team, count, type);
-
-    //Todo Refactor callback hell..
     try {
         g.getCurrentGame(req.db, (game) => {
-            game.orElse();
-            if (game.isSome() && game.some().timeStarted != '') {
 
-                //Todo check values.
+            var validated = game.map((g) => {
+              return validateScore(g, team, count);
+            }).orSome(m.Validation.fail({err: 'No started game present!'}));
 
-
-
+            validated.cata((err) => res.status(400).send(err), (data) => {
                 var score = {};
                 score['score.' + team] = count; //Inc is done in db call, if this one is negative it's decreased in db.
 
                 updateDbScore(score, db, (updatedGame) => {
-                    postEvent(es, evt, () => res.send(updatedGame));
+                    postEvent(es, createScoreEvent(team, count, type), () => res.send(updatedGame));
                 })
-
-            } else {
-                res.status(400).send({err: 'No started game present, or game score cannot be lower than 0'});
-            }
+            });
         });
 
     } catch (err) {
