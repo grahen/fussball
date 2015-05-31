@@ -3,10 +3,13 @@
 angular.module('fussball-app.services', ['ngResource'])
     .factory('Game', ['$resource',
         function ($resource) {
-            return $resource('games/:id', null, {
+            return $resource('games/:id/:action', null, {
                 query: {method: 'GET', params: {}, isArray: false},
-                //'takePosition': {method: 'POST', params: {takePosition: true}},
-                'createGame': {method: 'POST', params: {force: '@force'}}
+                'createGame': {method: 'POST', params: {id: 'createGame'}},
+                'endGame': {method: 'POST', params: {id: '@id', action: 'endGame'}},
+                'startGame': {method: 'POST', params: {id: '@id', action: 'startGame'}},
+                'takePosition': {method: 'POST', params: {id: '@id', action: 'takePosition'}}
+
             });
         }])
     .factory('Score', ['$resource',
@@ -14,7 +17,7 @@ angular.module('fussball-app.services', ['ngResource'])
             return $resource('games/score/:scoreType/:targetTeam', null, {
                 //query: {method: 'GET', params: {}, isArray: false},
                 //'takePosition': {method: 'POST', params: {takePosition: true}},
-                'score': {method: 'POST', params: {targetTeam: '@targetTeam', scoreType:'@scoreType'}}
+                'score': {method: 'POST', params: {targetTeam: '@targetTeam', scoreType: '@scoreType'}}
             });
         }])
 
@@ -31,7 +34,8 @@ angular.module('fussball-app.services', ['ngResource'])
             correction: correction,
             startGame: startGame,
             takePosition: takePosition,
-            addUser: addUser
+            addUser: addUser,
+            endGame: endGame
         });
 
         function addUser(data) {
@@ -44,9 +48,15 @@ angular.module('fussball-app.services', ['ngResource'])
             return $http.post('games/createGame', {}, {params: {force: force}}).then(ok, err);
         }
 
+        function endGame(id) {
+            // $http returns a promise, which has a then function, which also returns a promise
+            // Return the promise to the controller
+            return $http.post('games/' + id + '/endGame', {}).then(ok, err);
+        }
+
         //Well there is currently only a way to start the current game, not bound to id at the moment.
         function startGame(id) {
-            return $http.post('games/startGame/'+ id).then(ok, err);
+            return $http.post('games/'+id+'/startGame/', {}).then(ok, err);
         }
 
         function takePosition(id, data) {
@@ -54,7 +64,7 @@ angular.module('fussball-app.services', ['ngResource'])
         }
 
         function ok(response) {
-            console.log("it was a response: " );
+            console.log("it was a response: ");
             console.log(response);
             return response;
         }

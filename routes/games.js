@@ -13,6 +13,8 @@ var ObjectID = require('mongodb').ObjectID;
 
 var streamName = 'game';
 
+var io;
+
 var m = require("monet");
 
 function theGame(evt) {
@@ -33,18 +35,6 @@ router.get('/current', (req, res) => g.getGame(req.db, (items) => {
 
 }));
 
-function fireGameCreated(es, callback) {
-    es.getEventStream(streamName, (err, stream) => {
-        stream.addEvent(
-            {
-                createGame: {
-                    gameId: '1234'
-                }
-            });
-
-        stream.commit();
-    });
-}
 
 function createGame(db, callback) {
     var id = new ObjectID();
@@ -104,14 +94,13 @@ router.post('/createGame', (req, res) => {
                         });
 
                     stream.commit();
-
-                    res.json({game: newGame});
+                    postGameToClients(newGame);
+                    res.json(newGame);
                 });
             });
         }
     });
 });
-
 
 function updatePosition(team, position, player, game) {
     var g = JSON.parse(JSON.stringify(game));
@@ -120,8 +109,8 @@ function updatePosition(team, position, player, game) {
 }
 
 function isTeamsOk(t1, t2) {
-  return t1.offense != t2.offense && t1.offense != t2.defense && t1.defense != t2.offense && t1.defense != t2.defense
-      && t1.offense != "" && t1.defense != "" && t2.offense != "" && t2.defense != "";
+    return t1.offense != t2.offense && t1.offense != t2.defense && t1.defense != t2.offense && t1.defense != t2.defense
+        && t1.offense != "" && t1.defense != "" && t2.offense != "" && t2.defense != "";
 }
 
 /**
@@ -135,20 +124,21 @@ function okToStart(maybeGame) {
     var ret = m.Maybe.None();
     if (maybeGame.isSome()) {
         var game = maybeGame.some();
-        if ((game.timeStarted != "") ) {
-            ret =  m.Maybe.Some('Game already started ');
+        if ((game.timeStarted != "")) {
+            ret = m.Maybe.Some('Game already started ');
         } else if (!isTeamsOk(game.team_one, game.team_two)) {
-            ret =  m.Maybe.Some('A player cannot be on both teams, and there must be at least one player on each team');
+            ret = m.Maybe.Some('A player cannot be on both teams, and there must be at least one player on each team');
         }
     }
 
     return ret;
-
 }
 
-router.post('/startGame/:id', (req, res) => {
+router.post('/:gameId/startGame', (req, res) => {
     var es = req.es;
     var db = req.db;
+
+    //Todo do something with the id.
 
     try {
         g.getCurrentGame(db, (game) => {
@@ -163,7 +153,8 @@ router.post('/startGame/:id', (req, res) => {
                         postEvent(es, {
                             started: startedGame.some()
                         }, () => {
-                            res.send({game: startedGame.some()}); //Well well no error handling!
+                            postGameToClients(startedGame.some());
+                            res.send(startedGame.some()); //Well well no error handling!
                         });
                     });
                 });
@@ -182,16 +173,6 @@ router.post('/startGame/:id', (req, res) => {
  * POST to take position.
  */
 router.post('/:gameId/takePosition', (req, res) => {
-    takePos(req, res, req.params.gameId);
-    //if (req.query.takePosition) {
-    //
-    //} else {
-    //    res.send({err:"nope"});
-    //}
-});
-
-
-function takePos(req, res, gameId) {
     var es = req.es;
     var db = req.db;
 
@@ -223,21 +204,22 @@ function takePos(req, res, gameId) {
                     });
 
                 stream.commit();
-                res.send((err === null) ? g : err);
+                if (err === null) {
+                    postGameToClients(g);
+                    res.send(g);
+                } else {
+                    rest.send(err);
+                }
             });
         } else {
             res.status(400).send('No game present!');
         }
     });
 
-}
+});
 
-/*
+/**
  * POST to score on the current game if no game is running this event is ignored.
- *
- * If the game is won, that will be sent back to the client, with information on which team that won.
- *
- * The first team to 10 wins.
  */
 function createScoreEvent(team, count, type) {
     if (type == 'C') {
@@ -249,11 +231,11 @@ function createScoreEvent(team, count, type) {
 
 function validateScore(game, team, count) {
     if (game.timeStarted == '') {
-        return m.Validation.fail({err:"No started game present"});
+        return m.Validation.fail({err: "No started game present"});
     }
 
     if ((game.score[team] + count) < 0) {
-        return m.Validation.fail({err:"Score cannot be negative"});
+        return m.Validation.fail({err: "Score cannot be negative"});
     }
 
     return m.Validation.success();
@@ -273,7 +255,7 @@ router.post('/score/:scoreType/:targetTeam', (req, res) => {
         g.getCurrentGame(req.db, (game) => {
 
             var validated = game.map((g) => {
-              return validateScore(g, team, count);
+                return validateScore(g, team, count);
             }).orSome(m.Validation.fail({err: 'No started game present!'}));
 
             validated.cata((err) => res.status(400).send(err), (data) => {
@@ -281,7 +263,11 @@ router.post('/score/:scoreType/:targetTeam', (req, res) => {
                 score['score.' + team] = count; //Inc is done in db call, if this one is negative it's decreased in db.
 
                 updateDbScore(score, db, (updatedGame) => {
-                    postEvent(es, createScoreEvent(team, count, type), () => res.send(updatedGame));
+                    postEvent(es, createScoreEvent(team, count, type),
+                        () => {
+                            postGameToClients(updatedGame);
+                            res.send(updatedGame);
+                        });
                 })
             });
         });
@@ -291,23 +277,54 @@ router.post('/score/:scoreType/:targetTeam', (req, res) => {
     }
 });
 
-/**
- *
- * @param updatedGame
- * @param res
- * @returns {Function}
+/*
+ * POST to end the game
  */
-function checkEndGame(updatedGame, res) {
-    return () => {
-        //if (updatedGame.score.team_one == 10) {
-        //    endGame(db, updatedGame, (endedGame) => {
-        //        res.send(endedGame)
-        //    });
-        //
-        //} else {
-        res.send(updatedGame);
-        //}
+router.post('/:gameId/endGame', (req, res) => {
+    logger.debug("End game  " + req.params.gameId);
+
+    var es = req.es;
+    var db = req.db;
+
+    g.getCurrentGame(req.db, (game) => {
+
+        var notOkToEnd = isOkToEnd(game);
+        if (notOkToEnd.isSome()) {
+            logger.debug("Not ok to end, " + notOkToEnd.some());
+            res.status(400).send(notOkToEnd.some());
+
+        } else {
+            endGame(db, game.some(), (endedGame) => {
+                postEvent(es, {gameEnded: {gameId: req.params.gameId}}, () => {
+                    postGameToClients(endedGame);
+                    res.send(endedGame)
+                });
+            });
+        }
+    });
+});
+/**
+ * Validates that it is ok to end. A game can only be ended if it has been started and if it hasn't been ended already
+ * and that the scores of the team differs..
+ *
+ * @param game
+ */
+function isOkToEnd(game) {
+
+    if (game.isNone() || game.some().timeStarted == '') {
+        return m.Maybe.Some({err: "Game hasn't been started yet"});
     }
+
+    var g = game.some();
+    if (g.score.team_one == g.score.team_two) {
+        return m.Maybe.Some({err: "Same score on both teams, no winner"});
+    }
+
+    if (g.timeEnded != '') {
+        return m.Maybe.Some({err: "Game already ended"});
+    }
+
+    return m.Maybe.None();
 }
 
 function getWinner(score) {
@@ -384,4 +401,14 @@ function postEvent(es, evt, doneCommitting) {
     });
 }
 
-module.exports = router;
+function postGameToClients(game) {
+    logger.debug("Pushing to clients...:" + game);
+    io.sockets.emit('gameUpdated', game);
+}
+
+
+module.exports = function (injectedIo) {
+
+    io = injectedIo;
+    return router;
+};

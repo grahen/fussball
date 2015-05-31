@@ -1,0 +1,96 @@
+
+div(ng-model='currentGame' class="row row-centered")
+    //div(class="row")
+    //    div(class="col-md-12 ")
+    //        h1(class="text-center") Current game
+
+    div(class="row" ng-show="currentGame.timeStarted == ''")
+        div(class="col-md-3")
+        div(class="form-group col-md-2 ")
+            select(class="form-control" ng-options="user.username for user in users" ng-change="takePosition(currentGame.gameId, 'team_one', 'offense', teamOneOffense)" ng-model="teamOneOffense")
+        div(class="col-md-2")
+        div(class="form-group col-md-2")
+            select(class="form-control" ng-options="user.username for user in users" ng-change="takePosition(currentGame.gameId, 'team_one', 'defense', teamOneDefense)" ng-model="teamOneDefense")
+        div(class="col-md-3")
+
+    div(class="row" ng-show="currentGame.timeStarted != ''")
+        div(ng-show = 'currentGame.team_one.offense != currentGame.team_one.defense')
+            div(class="col-md-3")
+            div(class="col-md-2")
+                h2 {{currentGame.team_one.offense}}
+            div(class="col-md-2")
+            div(class="form-group col-md-2")
+                h2 {{currentGame.team_one.defense}}
+            div(class="col-md-3")
+
+        div(ng-show = 'currentGame.team_one.offense == currentGame.team_one.defense')
+            div(class="col-md-5")
+            div(class="col-md-2 text-center")
+                h2 {{currentGame.team_one.offense}}
+            div(class="col-md-5")
+
+
+    div(class="row display-table" style="height: 240px;")
+        div(class="col-md-2 display-cell")
+        div(class="col-md-1 display-cell")
+            span(style="font-size:35px" ng-show="currentGame.score.team_two > 0 && currentGame.timeEnded == ''" ng-click="correction('team_two')") -
+
+        div(class="col-md-1 display-cell" )
+            span(style="font-size:35px" ng-click="score('team_two')") {{currentGame.score.team_two}}
+
+        div(class="col-md-4 display-cell")
+            img(src="/images/fussball-1.jpg" height="240" width="320")
+
+        div(class="col-md-1 display-cell")
+            span(style="font-size:35px" ng-click="score('team_one')") {{currentGame.score.team_one}}
+
+        div(class="col-md-1 display-cell")
+            span(style="font-size:35px" ng-show="currentGame.score.team_one > 0 && currentGame.timeEnded == ''" ng-click="correction('team_one')") -
+
+        div(class="col-md-2 display-cell")
+
+
+    div(class="row" ng-show="currentGame.timeStarted == ''")
+        div(class="col-md-3")
+        div(class="form-group col-md-2 ")
+            select(class="form-control" ng-options="user.username for user in users" ng-change="takePosition(currentGame.gameId, 'team_two', 'offense', teamTwoOffense)" ng-model="teamTwoOffense")
+        div(class="col-md-2")
+        div(class="form-group col-md-2")
+            select(class="form-control" ng-options="user.username for user in users" ng-change="takePosition(currentGame.gameId, 'team_two', 'defense', teamTwoDefense)" ng-model="teamTwoDefense")
+        div(class="col-md-3")
+
+    div(class="row" ng-show="currentGame.timeStarted != ''")
+        div(ng-show = 'currentGame.team_two.offense != currentGame.team_two.defense')
+            div(class="col-md-3")
+            div(class="col-md-2")
+                h2 {{currentGame.team_two.offense}}
+            div(class="col-md-2")
+            div(class="form-group col-md-2")
+                h2 {{currentGame.team_two.defense}}
+            div(class="col-md-3")
+        div(ng-show = 'currentGame.team_two.offense == currentGame.team_two.defense')
+            div(class="col-md-5")
+            div(class="col-md-2 text-center")
+                h2 {{currentGame.team_two.offense}}
+            div(class="col-md-5")
+
+
+    div(class="row" ng-show="currentGame.timeStarted != '' && currentGame.score.team_one != currentGame.score.team_two && currentGame.timeEnded== ''")
+        div(class="col-md1")
+            button(class="btn btn-default" ng-click="endGame(currentGame.gameId)") Game over
+
+    div(class="row" ng-show="currentGame.timeEnded != ''")
+        div(class="col-md1")
+            button(class="btn btn-default" ng-click="createGame()") New Game
+
+    div(class="row" ng-show="currentGame.timeStarted == ''")
+        div(class="col-md1")
+            button(class="btn btn-default" ng-click="startGame(currentGame.gameId)") Start Game
+
+    br
+    div(ng-show='err' class='alert alert-danger') {{ err }}
+
+    div(class="row display-table")
+        div(class="col-md-3 display-cell")
+        div(ng-show="currentGame.timeEnded != ''" class ='col-md-6 alert alert-success display-cell' style="font-size:20px") Team {{teams[currentGame.winner]}} won the game at {{currentGame.timeEnded}}!
+        div(class="col-md-3 display-cell")

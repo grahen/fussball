@@ -3,7 +3,7 @@ var path = require('path');
 var favicon = require('serve-favicon');
 var logger = require('morgan');
 
-
+var socket_io = require( "socket.io" );
 
 var log4js = require('log4js');
 var log = log4js.getLogger();
@@ -15,8 +15,6 @@ var bodyParser = require('body-parser');
 var routes = require('./routes/index');
 var users = require('./routes/users');
 
-var games = require('./routes/games');
-
 // Database
 var mongo = require('mongoskin');
 var db = mongo.db("mongodb://localhost:27017/fussball", {native_parser:true});
@@ -26,6 +24,17 @@ var db = mongo.db("mongodb://localhost:27017/fussball", {native_parser:true});
 
 
 var app = express();
+
+
+var io = socket_io();
+app.io = io;
+
+io.on('connection', function(socket){
+    console.log("New user connected, what should we do now?");
+});
+
+
+var games = require('./routes/games')(io);
 
 var bus = require('./bus');
 
