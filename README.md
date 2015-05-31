@@ -8,3 +8,10 @@
 
     db.userlist.insert({'username' : 'test1','email' : 'a@b.com','fullname' : 'Bob Smith'})
 
+# Patch bin/www
+    ...
+    var server = http.createServer(app);
+
+    var io = app.io;    
+    io.attach(server);
+
